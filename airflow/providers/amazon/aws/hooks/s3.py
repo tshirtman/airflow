@@ -1394,8 +1394,18 @@ class S3Hook(AwsBaseHook):
             file_path.parent.mkdir(exist_ok=True, parents=True)
 
             file = open(file_path, "wb")
+
+            self.add_output_dataset(
+                namespace="file://",  # type: ignore[union-attr]
+                name=str(file_path),  # type: ignore[union-attr]
+            )
+
         else:
             file = NamedTemporaryFile(dir=local_path, prefix="airflow_tmp_", delete=False)  # type: ignore
+            self.add_output_dataset(
+                namespace="file://",  # type: ignore[union-attr]
+                name=str(local_path or gettempdir()),  # type: ignore[union-attr]
+            )
 
         with file:
             s3_obj.download_fileobj(
@@ -1403,6 +1413,11 @@ class S3Hook(AwsBaseHook):
                 ExtraArgs=self.extra_args,
                 Config=self.transfer_config,
             )
+
+        self.add_input_dataset(
+            namespace="s3://" + bucket_name,  # type: ignore[attr-defined,operator]
+            name=key,  # type: ignore[attr-defined]
+        )
 
         return file.name
 

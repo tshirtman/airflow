@@ -82,6 +82,10 @@ class ExtractorManager(LoggingMixin):
             f"airflow_run_id={dagrun.run_id} "
         )
 
+        from airflow.lineage.hook import get_hook_lineage_collector
+
+        self.log.debug(f"Collected lineage from hooks: {get_hook_lineage_collector().has_collected()}")
+
         if extractor:
             # Extracting advanced metadata is only possible when extractor for particular operator
             # is defined. Without it, we can't extract any input or output data.
@@ -104,6 +108,10 @@ class ExtractorManager(LoggingMixin):
                 self.log.warning(
                     "Failed to extract metadata using found extractor %s - %s %s", extractor, e, task_info
                 )
+        elif get_hook_lineage_collector().has_collected():
+            self.log.debug("Found lineage collected from hooks")
+            inputs, outputs = get_hook_lineage_collector().collected
+            return OperatorLineage(inputs=inputs, outputs=outputs)
         else:
             self.log.debug("Unable to find an extractor %s", task_info)
 
